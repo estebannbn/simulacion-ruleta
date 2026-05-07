@@ -1,4 +1,4 @@
-# simulacion-ruleta
+# Simulacion Ruleta
 Simulación de tiradas de ruleta
 
 Este proyecto contiene un script en Python para simular tiradas de una ruleta europea.
