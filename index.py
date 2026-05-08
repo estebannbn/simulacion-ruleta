@@ -144,10 +144,19 @@ def plot_multiple_averages(spin_count, all_averages):
 def plot_multiple_stds(spin_count, all_stds):
     x_values = list(range(1, spin_count + 1))
 
+    # Desvío estándar teórico (discreto 0..36): Var = 114 -> std = sqrt(114)
+    expected_variance = (37**2 - 1) / 12
+    expected_std = np.sqrt(expected_variance)
+
     plt.figure(figsize=(12, 8))
     colors = plt.cm.viridis(np.linspace(0, 1, len(all_stds)))
     for i, std in enumerate(all_stds):
         plt.plot(x_values, std, label=f"Corrida {i+1}", color=colors[i])
+
+    # Línea horizontal que marca el desvío estándar esperado
+    plt.hlines(expected_std, 1, spin_count, colors="red", linestyles="dashed",
+               label=f"Desvío estándar esperado ({expected_std:.3f})")
+
     plt.title("Desvío estándar acumulado en múltiples corridas")
     plt.xlabel("Número de tiradas")
     plt.ylabel("Desvío estándar")
@@ -160,10 +169,19 @@ def plot_multiple_stds(spin_count, all_stds):
 def plot_multiple_vars(spin_count, all_vars):
     x_values = list(range(1, spin_count + 1))
 
+    # Varianza esperada para distribución uniforme discreta 0..36:
+    # Var = ((b-a+1)^2 - 1) / 12 = (37^2 - 1) / 12 = 114
+    expected_variance = (37**2 - 1) / 12
+
     plt.figure(figsize=(12, 8))
     colors = plt.cm.viridis(np.linspace(0, 1, len(all_vars)))
     for i, var in enumerate(all_vars):
         plt.plot(x_values, var, label=f"Corrida {i+1}", color=colors[i])
+
+    # Línea horizontal que marca la varianza esperada
+    plt.hlines(expected_variance, 1, spin_count, colors="red", linestyles="dashed",
+               label=f"Varianza esperada ({expected_variance:.2f})")
+
     plt.title("Varianza acumulada en múltiples corridas")
     plt.xlabel("Número de tiradas")
     plt.ylabel("Varianza")
@@ -172,6 +190,60 @@ def plot_multiple_vars(spin_count, all_vars):
     plt.tight_layout()
     plt.show()
 
+def plot_histogram_per_run(spin_count, all_runs):
+    """
+    Dibuja un histograma por corrida con la cantidad de veces que salió cada número (0-36).
+    Si hay más de una corrida, las barras se dibujan en la misma posición y con transparencia
+    para poder comparar cómo se acercan al valor esperado.
+    all_runs: lista de corridas. Cada corrida puede ser:
+      - lista de tuplas (number, color) como devuelve simulate_spins, o
+      - lista de números (0-36).
+    """
+    # Construir matriz de conteos (n_corridas x 37)
+    counts_list = []
+    for run in all_runs:
+        if len(run) == 0:
+            counts_list.append(np.zeros(37, dtype=int))
+            continue
+        first = run[0]
+        if isinstance(first, tuple):
+            numbers = [n for n, _ in run]
+        else:
+            numbers = list(run)
+        hist = np.zeros(37, dtype=int)
+        for n in numbers:
+            if 0 <= n <= 36:
+                hist[n] += 1
+        counts_list.append(hist)
+
+    if len(counts_list) == 0:
+        print("No hay corridas para graficar.")
+        return
+
+    counts = np.array(counts_list)  # shape (runs, 37)
+    runs = counts.shape[0]
+    x = np.arange(37)
+    width = 0.8
+
+    plt.figure(figsize=(14, 6))
+    colors = plt.cm.tab10(np.linspace(0, 1, max(1, runs)))
+    for i in range(runs):
+        plt.bar(x, counts[i], width=width, color=colors[i % len(colors)],
+                alpha=0.45, label=f"Corrida {i+1}", edgecolor="black", linewidth=0.4)
+
+    # Línea con el valor esperado por número
+    expected_per_number = spin_count / 37
+    plt.hlines(expected_per_number, -0.5, 36.5, colors="red", linestyles="dashed",
+               label=f"Esperado por número ({expected_per_number:.2f})")
+
+    plt.xticks(x)
+    plt.xlabel("Número de la ruleta")
+    plt.ylabel("Veces que salió")
+    plt.title("Frecuencia de cada número por corrida (0-36) — barras superpuestas")
+    plt.legend()
+    plt.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
 def main():
     print("Simulación de ruleta europea")
@@ -183,12 +255,14 @@ def main():
     all_averages = []
     all_stds = []
     all_vars = []
+    all_runs = []
     for turn in range(turns_count):
         results, color_counts, chosen_count, chosen_frequency, average_numbers, std_numbers, var_numbers = simulate_spins(spin_count, chosen_number)
         all_frequencies.append(chosen_frequency)
         all_averages.append(average_numbers)
         all_stds.append(std_numbers)
         all_vars.append(var_numbers)
+        all_runs.append(results)  # Guardar la corrida completa (lista de tuplas (número, color))
 
     # Mostrar resultados de la última corrida
     print_simulation_results(results, color_counts, chosen_number, chosen_count)
@@ -198,6 +272,7 @@ def main():
     plot_multiple_averages(spin_count, all_averages)
     plot_multiple_stds(spin_count, all_stds)
     plot_multiple_vars(spin_count, all_vars)
+    plot_histogram_per_run(spin_count, all_runs)
 
 
 if __name__ == "__main__":
