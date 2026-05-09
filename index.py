@@ -83,8 +83,8 @@ def parse_arguments():
 
     if args.tiradas <= 0:
         parser.error("La cantidad de tiradas debe ser un entero positivo.")
-    if args.turns_count <= 0:
-        parser.error("La cantidad de turns_count debe ser un entero positivo.")
+    if args.turns_count <= 0 or args.turns_count > 7:
+        parser.error("La cantidad de turns_count debe ser un entero positivo y no mayor a 7.")
     if not 0 <= args.numero <= 36:
         parser.error("El número elegido debe estar entre 0 y 36.")
 
